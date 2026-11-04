@@ -3,6 +3,9 @@
 Seven example jobs, each adding one idea to the one before. Every job runs
 only when someone clicks **Trigger**, and the form asks for its inputs.
 
+**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the teach-me session deck
+(what Airflow is, our setup, a demo of example 3, writing your own job, troubleshooting).
+
 | # | Job (dag_id) | Adds | Level |
 |---|---|---|---|
 | 1 | `hello_manual` | A manual job with one input | Start here |
@@ -26,10 +29,11 @@ airflow-demo/
 │   ├── 05_multi_region_report.py
 │   ├── 06_mysql_sales_export.py
 │   └── 07_sales_pipeline.py
-└── jobs/                         # scripts, data and SQL: anywhere on the server
+├── jobs/                         # scripts, data and SQL: anywhere on the server
     ├── scripts/filter_data.py, summarize.py
     ├── data/sales.csv
     └── sql/create_sample_sales.sql
+└── docs/airflow-teach-me-slides.pdf
 ```
 
 ## Setup
