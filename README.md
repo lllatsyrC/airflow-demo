@@ -3,8 +3,10 @@
 Seven example jobs, each adding one idea to the one before. Every job runs
 only when someone clicks **Trigger**, and the form asks for its inputs.
 
-**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the teach-me session deck
-(what Airflow is, our setup, a demo of example 3, writing your own job, troubleshooting).
+**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the 29-slide teach-me deck.
+It explains the ideas with workflow diagrams: manual steps becoming tasks, what a DAG is (and why loops aren't allowed),
+how `>>` draws the arrows, what runs on the server, what happens when you click Trigger, how to read a failed run,
+and a diagram of examples 4, 5 and 7.
 
 | # | Job (dag_id) | Adds | Level |
 |---|---|---|---|
@@ -100,5 +102,17 @@ To try a job once in the terminal without the scheduler, use `airflow dags test 
 - **Never paste inputs into SQL text:** use `%s` placeholders and pass the values separately (example 6).
 - **Record who ran it:** a required "Your name" input plus a manifest file (example 7).
 - **Don't let two runs overwrite each other:** `max_active_runs=1` and a per-run output folder.
+
+
+## References
+
+| Resource | What it's good for |
+|---|---|
+| [Airflow docs: Architecture Overview](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/overview.html) | What each part of an Airflow 3 server does (scheduler, DAG processor, API server, metadata database, workers), how tasks pass data, and the default "wait for everything upstream" rule. Basis for the setup and failure slides. |
+| [Airflow docs: Params](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/params.html) | Every input type the Trigger form supports. Basis for example 2. |
+| [Airflow docs: Dynamic Task Mapping](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/dynamic-task-mapping.html) | `.expand()`, one task copy per item. Basis for examples 5 and 7. |
+| [Airflow docs: Installation from PyPI](https://airflow.apache.org/docs/apache-airflow/stable/installation/installing-from-pypi.html) | Installing with pip and a constraints file, including offline installs. |
+| [shyarnis/airflow-presentation](https://github.com/shyarnis/airflow-presentation) | A short classroom deck on Airflow. Its "pipelines as graphs", "why a cycle deadlocks" and "mental model to tasks" slides inspired the workflow and DAG diagrams here. Note: its install steps target Airflow 2.7 and Python 3.8 (`airflow webserver`, `airflow users create`); on Airflow 3 the UI runs as `airflow api-server`. |
+| Harenslak, B. and de Ruiter, J., *Data Pipelines with Apache Airflow*, Manning ([book code](https://github.com/BasPH/data-pipelines-with-apache-airflow)) | The book the shyarnis deck draws on. Chapters 1–2 cover the same DAG fundamentals in depth. |
 
 Tested on Airflow 3.3.2 and 2.10.5 (Python 3.12), with MariaDB for example 6.
