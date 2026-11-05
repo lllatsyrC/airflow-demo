@@ -3,10 +3,27 @@
 Seven example jobs, each adding one idea to the one before. Every job runs
 only when someone clicks **Trigger**, and the form asks for its inputs.
 
-**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the 29-slide teach-me deck.
-It explains the ideas with workflow diagrams: manual steps becoming tasks, what a DAG is (and why loops aren't allowed),
-how `>>` draws the arrows, what runs on the server, what happens when you click Trigger, how to read a failed run,
-and a diagram of examples 4, 5 and 7.
+**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the teach-me deck: 16 slides plus an appendix.
+It shows today's process next to the same process with Airflow, explains tasks and DAGs with diagrams, and walks through
+the web page with annotated Airflow 3.3.2 screenshots (find a job, fill in the form, watch the run, read logs, fix a failure).
+The appendix covers the example jobs below and reference material.
+
+## Try it on your own machine
+
+On a Mac, Linux, or Windows with WSL2, with internet access and Python 3.10–3.12:
+
+```bash
+git clone https://github.com/lllatsyrC/airflow-demo
+cd airflow-demo
+./run-local.sh install    # once: creates .venv and installs Airflow 3.3.2
+./run-local.sh            # starts Airflow; open http://localhost:8080
+```
+
+Log in as `admin` with the password printed in the terminal (also saved in `.airflow/simple_auth_manager_passwords.json.generated`).
+Everything stays inside the repo folder (`.venv/`, `.airflow/`), and Ctrl+C stops it. Examples 1–5 and 7 work as is;
+example 6 also needs a MySQL server.
+
+## The example jobs
 
 | # | Job (dag_id) | Adds | Level |
 |---|---|---|---|
