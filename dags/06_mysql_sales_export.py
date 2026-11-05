@@ -1,27 +1,13 @@
 """
 Example 6 · Query MySQL with the form's inputs
-==============================================
-Pulls sales from a MySQL table for a date range and set of regions chosen
-in the form, saves them to CSV and prints totals.
 
-What it teaches
-  - Date-picker inputs and checking them against each other
-  - AirflowFailException: stop immediately on bad input, no retries
-  - MySqlHook + an Airflow Connection (no passwords in the code)
-  - SAFE queries: inputs go in as query parameters (%s), never pasted
-    into the SQL text, so nobody can inject SQL through the form
+Exports sales for a date range and regions to CSV, then prints totals.
+- AirflowFailException: stop at once on bad input, no retries
+- MySqlHook with an Airflow Connection: no passwords in the code
+- Inputs go into the query as %s parameters, never pasted into the SQL
 
-Setup (once)
-  1. Load the sample table:   mysql -u <user> -p < jobs/sql/create_sample_sales.sql
-  2. Add a connection (UI: Admin -> Connections, or CLI):
-       airflow connections add mysql_default --conn-type mysql \
-         --conn-host localhost --conn-port 3306 --conn-schema airflow_examples \
-         --conn-login <user> --conn-password '<password>'
-  Needs the MySQL provider: pip install "apache-airflow[mysql]"
-
-Try it
-  CLI: airflow dags trigger mysql_sales_export \
-         --conf '{"start_date": "2026-10-02", "end_date": "2026-10-04", "regions": ["East", "West"]}'
+Setup: see dags/README.md (sample table + mysql_default connection).
+Try it: airflow dags trigger mysql_sales_export --conf '{"start_date": "2026-10-02", "end_date": "2026-10-04"}'
 """
 import csv
 import os
@@ -66,18 +52,17 @@ def mysql_sales_export():
     def check_inputs(**context):
         p = context["params"]
         if p["end_date"] < p["start_date"]:
-            # Fail now, and don't retry: retrying won't fix a bad input.
             raise AirflowFailException(
                 f"'To' ({p['end_date']}) is before 'From' ({p['start_date']})")
         print(f"Exporting {p['regions']} from {p['start_date']} to {p['end_date']}")
 
     @task
     def query_sales(**context):
-        # Imported here so the DAG still loads on a machine without the provider.
+        # imported here so the job still loads where the provider isn't installed
         from airflow.providers.mysql.hooks.mysql import MySqlHook
 
         p = context["params"]
-        placeholders = ", ".join(["%s"] * len(p["regions"]))   # "%s, %s, %s"
+        placeholders = ", ".join(["%s"] * len(p["regions"]))
         sql = f"""
             SELECT sale_date, region, product, amount
             FROM sales

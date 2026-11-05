@@ -1,16 +1,12 @@
 """
 Example 1 · Hello, manual run
-=============================
-The smallest possible manually triggered job with an input.
 
-What it teaches
-  - schedule=None        -> the job never runs on its own; someone clicks Trigger
-  - params={...}         -> the inputs; Airflow turns them into a form
-  - context["params"]    -> how a task reads the values someone typed in
+The smallest manual job: one input, one task.
+- schedule=None: runs only when someone clicks Trigger
+- params: the inputs, shown as a form
+- context["params"]: how a task reads them
 
-Try it
-  UI:  Trigger -> change "name" -> Trigger
-  CLI: airflow dags trigger hello_manual --conf '{"name": "Alex"}'
+Try it: airflow dags trigger hello_manual --conf '{"name": "Alex"}'
 """
 from datetime import datetime
 
@@ -24,7 +20,7 @@ except ImportError:  # Airflow 2.x
 @dag(
     dag_id="hello_manual",
     dag_display_name="Example 1 · Hello, manual run",
-    schedule=None,                     # manual runs only
+    schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=["example", "level-1"],

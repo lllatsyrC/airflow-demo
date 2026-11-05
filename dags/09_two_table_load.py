@@ -1,40 +1,17 @@
 """
 Example 9 · Two-table load: trips, then trip points
-===================================================
-Two Python tasks, each building a DataFrame from a batch file and inserting it.
-The second table depends on the first: trip points are joined to the trips that
-task 1 inserted, read back from the database.
 
     load_trips >> load_trip_points
 
-    load_trips         build_trips_df(trips file)                     -> DataFrame
-                       load_df_to_table(DataFrame)                    -> trips table
-    load_trip_points   read trips for this batch from the database
-                       build_trip_points_df(points file, trips)       -> DataFrame
-                       load_df_to_table(DataFrame)                    -> trip_points table
+Each task builds a DataFrame from a batch file and inserts it. Task 2 joins
+its rows to the trips task 1 inserted, read back from the database.
+A DataFrame can't be passed between tasks (each runs in its own process), so
+each task builds and loads its own; only a small summary is passed on.
+- Both files are checked before the first insert
+- Reruns replace the batch's rows, in one transaction
 
-Why the DataFrame never leaves its task: each task runs in its own process (possibly on a
-different machine), so tasks can't hand each other a DataFrame. Building and loading inside
-the same task avoids that. Task 2 gets task 1's data from the database, and the only thing
-passed between them is a small summary (batch ID and row count).
-
-What it teaches
-  - Python tasks (@task) that call ordinary functions, one task per table
-  - Batch file locations as inputs
-  - A task reading rows a previous task wrote (dependency through the database)
-  - Database access through an Airflow Connection (no password in the code)
-  - Checking every input file before the first insert, so a missing file can't leave
-    the batch half loaded
-  - Safe reruns: each load replaces the batch's rows in one transaction
-
-Setup (once)
-  1. Create the tables:  mysql -u <admin> -p < jobs/sql/create_batch_tables.sql
-  2. Add an Airflow connection (as in example 6), e.g. mysql_default.
-  3. Airflow's own Python needs pandas and the MySQL provider, because these
-     functions run inside Airflow (unlike example 8's scripts).
-
-Try it
-  airflow dags trigger batch_load_trips --conf '{"batch_dir": "/opt/jobs/data/batches/batch_2026_11_04"}'
+Setup: see dags/README.md (tables + mysql_default connection; pandas in Airflow's Python).
+Try it: airflow dags trigger batch_load_trips --conf '{"batch_dir": "/opt/jobs/data/batches/batch_2026_11_04"}'
 """
 import os
 from datetime import datetime, timedelta
@@ -47,10 +24,8 @@ except ImportError:  # Airflow 2.x
 from airflow.exceptions import AirflowFailException
 
 
-# ---------------------------------------------------------------------------
-# The functions. These could equally be imported from an existing team module.
-# pandas is imported inside them so the job file loads quickly.
-# ---------------------------------------------------------------------------
+# Ordinary functions (could be imported from a team module). pandas is imported
+# inside them so the job file loads quickly.
 def build_trips_df(path, batch_id):
     import pandas as pd
     df = pd.read_csv(path)
@@ -137,7 +112,7 @@ POINT_COLUMNS = ["batch_id", "point_id", "trip_id", "t_min", "x_km", "y_km", "el
     catchup=False,
     tags=["example", "level-3", "batch", "mysql"],
     doc_md=__doc__,
-    default_args={"retries": 1, "retry_delay": timedelta(seconds=30)},  # safe: loads replace the batch
+    default_args={"retries": 1, "retry_delay": timedelta(seconds=30)},
     params={
         "batch_dir": Param(type="string", minLength=1, title="Batch folder",
                            description="Folder the batch was copied into", section="Batch"),
@@ -157,10 +132,10 @@ def batch_load_trips():
     def load_trips(**context):
         p = context["params"]
         path, batch_id = batch_file(p, "trips_file")
-        batch_file(p, "trip_points_file")   # check task 2's file too, before inserting anything
+        batch_file(p, "trip_points_file")  # check task 2's file before inserting anything
         df = build_trips_df(path, batch_id)
         load_df_to_table(df, "trips", TRIP_COLUMNS, p["mysql_conn_id"], batch_id)
-        return {"batch_id": batch_id, "rows": len(df)}   # small summary only, not the DataFrame
+        return {"batch_id": batch_id, "rows": len(df)}  # a small summary, not the DataFrame
 
     @task
     def load_trip_points(trips_loaded, **context):
@@ -171,7 +146,7 @@ def batch_load_trips():
         load_df_to_table(df, "trip_points", POINT_COLUMNS, p["mysql_conn_id"], batch_id)
         return {"batch_id": batch_id, "rows": len(df)}
 
-    # Passing load_trips' result in is what sets the order: load_trips >> load_trip_points
+    # passing load_trips' result in sets the order: load_trips >> load_trip_points
     load_trip_points(load_trips())
 
 

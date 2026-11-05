@@ -1,34 +1,20 @@
 """
 Example 8 · Run our existing scripts in order on a batch
-========================================================
-The pattern for scripts the team runs by hand in a terminal today. A new batch is copied
-into a folder by hand; this job takes that folder as an input and runs the scripts in
-order, each one's output becoming the next one's input:
+
+Takes a batch folder and runs the team's scripts in order, each step reading
+the previous step's output:
 
     check_inputs >> clean_counts >> summarize_counts >> insert_requested >> load_counts
 
-What it teaches
-  - File locations as inputs: a batch folder, plus a file name inside it (or a full path)
-  - Scripts that stay where they are: full paths set once at the top of this file,
-    even when they live in different folders
-  - One shared bash script (jobs/common/run_python_step.sh) reused by every step,
-    found through template_searchpath; each task gives it different inputs
-  - A step's input coming from the step before it (dependency-based inputs)
-  - Running scripts with the team's own Python, not Airflow's
-  - An optional database insert: untick "Insert into the database" and the last step
-    is skipped
-  - Safe reruns: the load script replaces the batch's rows instead of adding duplicates
+- The scripts stay in their own folders (paths set once below)
+- One shared bash runner (jobs/common/run_python_step.sh), found through
+  template_searchpath; each step passes it different env values
+- Scripts run with the team's own Python (python_bin)
+- Unticking "Insert into the database" skips the load step
+- Reruns replace the batch's rows instead of duplicating them
 
-Setup (once)
-  1. Create the table:  mysql -u <admin> -p < jobs/sql/create_batch_tables.sql
-  2. Copy jobs/common/db.cnf.example to e.g. /opt/airflow/secrets/team_db.cnf,
-     fill in the database login, and chmod 600 it.
-  3. The Python that runs the scripts needs pandas and pymysql.
-
-Try it
-  airflow dags trigger batch_run_scripts --conf '{
-      "batch_dir": "/opt/jobs/data/batches/batch_2026_11_04",
-      "db_config": "/opt/airflow/secrets/team_db.cnf"}'
+Setup: see dags/README.md (table + database login file).
+Try it: airflow dags trigger batch_run_scripts --conf '{"batch_dir": "/opt/jobs/data/batches/batch_2026_11_04", "write_to_db": false}'
 """
 import os
 from datetime import datetime, timedelta
@@ -42,10 +28,7 @@ except ImportError:  # Airflow 2.x
     from airflow.operators.bash import BashOperator
 from airflow.exceptions import AirflowFailException
 
-# ---------------------------------------------------------------------------
-# Where things live on the server. The scripts stay in their own folders; set
-# these paths once here (or with the environment variables named below).
-# ---------------------------------------------------------------------------
+# Where things live on the server. Set once here or with these environment variables.
 JOBS_DIR = os.environ.get(
     "JOBS_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "jobs"))
 )
@@ -60,7 +43,7 @@ SCRIPTS = {
 COMMON_BASH_DIR = os.environ.get("COMMON_BASH_DIR", os.path.join(JOBS_DIR, "common"))
 RUNS_DIR = os.environ.get("BATCH_RUNS_DIR", "/tmp/airflow_examples/batch_runs")
 
-# Values check_inputs works out, read back inside each step's settings.
+# The paths check_inputs returns, read inside each step's settings
 CHECKED = "ti.xcom_pull(task_ids='check_inputs')"
 
 
@@ -121,7 +104,7 @@ def step(task_id, script, in_file, out_file=None, db=False):
 )
 def batch_run_scripts():
 
-    @task(retries=0)  # a missing file won't fix itself
+    @task(retries=0)  # retrying won't bring back a missing file
     def check_inputs(**context):
         """Turn the form's paths into full paths, check everything exists, set up a run folder."""
         p = context["params"]
@@ -148,7 +131,6 @@ def batch_run_scripts():
             print(f"{k:<12} {v}")
         return checked
 
-    # Each step: same shared runner, its own script, and its input = the step before's output.
     clean = step("clean_counts", SCRIPTS["clean"],
                  in_file="{{ %s['counts_in'] }}" % CHECKED,
                  out_file="{{ %s['clean_out'] }}" % CHECKED)

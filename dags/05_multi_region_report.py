@@ -1,19 +1,11 @@
 """
 Example 5 · One step per selected item
-======================================
-The user picks several regions in a multi-select. Airflow creates one
-copy of the "summarize_region" step per region, runs them in parallel,
-then combines the results.
 
-What it teaches
-  - Dynamic task mapping: .expand() over a list chosen in the form
-  - Each region shows as its own box in the UI (labelled by region),
-    with its own log, and can be rerun alone if it fails
-  - Collecting the results of all copies into one final step
+One copy of summarize_region runs per region picked, in parallel, then combine
+collects the results. Each copy has its own log and can be rerun alone.
+- .expand() over a list from the form (dynamic task mapping)
 
-Try it
-  CLI: airflow dags trigger multi_region_report \
-         --conf '{"regions": ["East", "South", "West"], "min_amount": 50}'
+Try it: airflow dags trigger multi_region_report --conf '{"regions": ["East", "South", "West"], "min_amount": 50}'
 """
 import csv
 import os
@@ -44,7 +36,7 @@ REGIONS = ["East", "West", "North", "South"]
         "regions": Param(
             ["East", "West", "North"],
             type="array",
-            examples=REGIONS,                     # -> multi-select in the form
+            examples=REGIONS,
             items={"type": "string", "enum": REGIONS},
             minItems=1,
             description="One summary step runs per region you pick",
@@ -61,7 +53,7 @@ def multi_region_report():
         print(f"Will run one step for each of: {regions}")
         return regions
 
-    # map_index_template labels each copy with its region in the UI.
+    # map_index_template labels each copy with its region in the UI
     @task(map_index_template="{{ region_label }}")
     def summarize_region(region, **context):
         get_current_context()["region_label"] = region

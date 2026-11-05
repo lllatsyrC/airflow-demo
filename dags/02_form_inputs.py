@@ -1,18 +1,12 @@
 """
 Example 2 · Every kind of form input
-====================================
-A tour of the input types the Trigger form can show. Copy the ones you need.
 
-What it teaches
-  - Text, number, checkbox, dropdown, multi-select, date picker,
-    multi-line text and JSON inputs
-  - Required fields, limits and patterns (Airflow refuses bad values
-    before the run starts)
-  - title / description to label fields, section to group them
+A tour of the input types the Trigger form can show: text, number, checkbox,
+dropdown, multi-select, date picker, multi-line text and JSON. Also required
+fields, limits and patterns. Copy the ones you need.
 
-Try it
-  UI: Trigger, fill in the required "Run label" and "Project code", and
-      try typing a bad value (e.g. row limit 0) to see the validation.
+Try it: Trigger, fill in "Run label" and "Project code", then try a bad value
+(e.g. row limit 0) to see the form refuse it.
 """
 from datetime import datetime
 
@@ -33,8 +27,7 @@ REGIONS = ["East", "West", "North", "South"]
     catchup=False,
     tags=["example", "level-1"],
     params={
-        # ---- Basics -------------------------------------------------------
-        # No default -> required: the form will not submit until it is filled in.
+        # No default = required
         "run_label": Param(
             type="string",
             minLength=3,
@@ -42,7 +35,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Required. A short name for this run (3+ characters).",
             section="Basics",
         ),
-        # pattern = a regular expression the value must match.
+        # pattern = a regular expression the value must match
         "project_code": Param(
             type="string",
             pattern="^[A-Z]{2}-[0-9]{4}$",
@@ -50,7 +43,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Required. Format AB-1234.",
             section="Basics",
         ),
-        # format="multiline" -> a larger text box.
+        # multiline = a larger text box
         "notes": Param(
             "",
             type="string",
@@ -59,9 +52,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Optional free text, saved with the run.",
             section="Basics",
         ),
-
-        # ---- Filters ------------------------------------------------------
-        # enum -> dropdown. values_display -> friendlier labels in the form.
+        # enum = dropdown; values_display = friendlier labels
         "region": Param(
             "East",
             type="string",
@@ -71,7 +62,7 @@ REGIONS = ["East", "West", "North", "South"]
             title="Main region",
             section="Filters",
         ),
-        # array + examples -> multi-select.
+        # array + examples = multi-select
         "regions": Param(
             ["East", "West"],
             type="array",
@@ -82,7 +73,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Pick one or more.",
             section="Filters",
         ),
-        # format="date" -> date picker. ["null", "string"] makes it optional.
+        # date picker; ["null", "string"] makes it optional
         "report_date": Param(
             None,
             type=["null", "string"],
@@ -91,7 +82,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Optional. Leave empty for 'all dates'.",
             section="Filters",
         ),
-        # integer with limits -> number box, validated.
+        # number box with limits
         "row_limit": Param(
             1000,
             type="integer",
@@ -100,7 +91,7 @@ REGIONS = ["East", "West", "North", "South"]
             title="Row limit",
             section="Filters",
         ),
-        # number -> decimals allowed.
+        # number = decimals allowed
         "threshold": Param(
             0.5,
             type="number",
@@ -109,9 +100,7 @@ REGIONS = ["East", "West", "North", "South"]
             title="Threshold (0 to 1)",
             section="Filters",
         ),
-
-        # ---- Advanced -----------------------------------------------------
-        # boolean -> checkbox / toggle.
+        # boolean = toggle
         "dry_run": Param(
             True,
             type="boolean",
@@ -119,7 +108,7 @@ REGIONS = ["East", "West", "North", "South"]
             description="Only print what would happen.",
             section="Advanced",
         ),
-        # object -> JSON editor, for power users.
+        # object = JSON editor
         "extra_options": Param(
             {"retries": 1, "verbose": False},
             type="object",

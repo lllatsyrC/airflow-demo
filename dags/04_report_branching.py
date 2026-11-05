@@ -1,18 +1,11 @@
 """
 Example 4 · Let the inputs choose the path
-==========================================
-The form decides which steps run. Steps that aren't chosen show as
-"skipped" (pink) in the UI.
 
-What it teaches
-  - @task.branch: return the task_id(s) to run next
-  - A dropdown input that changes what the job does
-  - trigger_rule on the last step so it still runs after a skipped branch
-  - Passing small data between Python tasks (return value -> argument)
+A dropdown decides which steps run; the others show as skipped (pink).
+- @task.branch returns the task_id(s) to run next
+- trigger_rule on finish so it runs after a skipped branch
 
-Try it
-  CLI: airflow dags trigger report_branching --conf '{"report_type": "both"}'
-       airflow dags trigger report_branching --conf '{"dry_run": true}'
+Try it: airflow dags trigger report_branching --conf '{"report_type": "both"}'
 """
 import csv
 import os
@@ -61,7 +54,7 @@ def report_branching():
             rows = [r for r in csv.DictReader(f)
                     if region == "All" or r["region"] == region]
         print(f"{len(rows)} rows for region={region}")
-        # Fine for small data. For big data, write a file and return its path.
+        # Fine for small data; for big data, write a file and return its path
         return rows
 
     @task.branch
@@ -94,7 +87,6 @@ def report_branching():
     def dry_run_preview(rows):
         print(f"[dry run] would report on {len(rows)} rows; nothing written")
 
-    # Runs if at least one branch succeeded and none failed.
     @task(trigger_rule="none_failed_min_one_success")
     def finish():
         print("Done.")

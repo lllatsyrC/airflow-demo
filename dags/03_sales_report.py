@@ -1,20 +1,13 @@
 """
-Example 3 · Run existing scripts with inputs  (the teach-me demo)
-=================================================================
-Wraps two scripts we already have. Airflow passes the form values to them
-as command-line arguments and runs them in order.
+Example 3 · Run existing scripts with inputs (the teach-me demo)
 
-What it teaches
-  - BashOperator: run any script, by its full path
-  - {{ params.name }}: put a form value into a command
-  - Several steps in order: validate >> filter_data >> summarize >> done
-  - Passing a value between steps: "validate" returns this run's output
-    folder, later steps read it with ti.xcom_pull
-  - Scripts live outside the dags folder (see JOBS_DIR)
+Runs two existing scripts in order, passing the form values as arguments.
+- BashOperator runs a script by its full path
+- {{ params.name }} puts a form value into the command
+- validate returns this run's folder; later steps read it with xcom_pull
 
-Try it
-  CLI: airflow dags trigger sales_report --conf '{"region": "East", "min_amount": 100}'
-  Sample data: East over 100 -> 3 rows, total 610.50
+Try it: airflow dags trigger sales_report --conf '{"region": "East", "min_amount": 100}'
+Expect: 3 rows, total 610.50
 """
 import os
 from datetime import datetime
@@ -27,15 +20,14 @@ except ImportError:  # Airflow 2.x
     from airflow.models.param import Param
     from airflow.operators.bash import BashOperator
 
-# Scripts and data live OUTSIDE the dags folder. Set JOBS_DIR on the server
-# (e.g. /opt/jobs); the fallback is the jobs/ folder next to dags/.
+# Scripts and data live outside the dags folder (set JOBS_DIR on the server).
 JOBS_DIR = os.environ.get(
     "JOBS_DIR", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "jobs"))
 )
 SCRIPTS = os.path.join(JOBS_DIR, "scripts")
 DATA = os.path.join(JOBS_DIR, "data")
 
-# The folder "validate" returned, read back inside a command.
+# The folder validate() returned, read inside a command
 RUN_DIR = "{{ ti.xcom_pull(task_ids='validate') }}"
 
 
@@ -69,7 +61,7 @@ def sales_report():
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir = os.path.join(p["output_dir"], f"{p['region']}_{stamp}")
         os.makedirs(run_dir, exist_ok=True)
-        return run_dir          # passed to the next steps
+        return run_dir
 
     filter_data = BashOperator(
         task_id="filter_data",

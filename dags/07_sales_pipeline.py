@@ -1,28 +1,16 @@
 """
-Example 7 · Putting it together: a production-style manual job
-==============================================================
-Everything from examples 1-6 in one job, plus the habits that make a
-manual job safe to hand to other people.
+Example 7 · Everything together: a production-style manual job
 
-What it teaches
-  - A grouped, required-field form (who is asking and why is recorded)
-  - Up-front validation that fails fast with a clear message
-  - A task group that fans out per region, with automatic retries
-  - Skipping cleanly when there is nothing to report
-  - Output in the formats the user ticked, plus a manifest.json that
-    records exactly who ran it, with which inputs
-  - A failure callback (hook for an alert)
-  - Optionally starting another job (sales_report) and passing it inputs
-  - max_active_runs=1 so two people can't run it over each other
+Examples 1-6 combined, plus the habits that make a job safe to hand to others:
+- required "Your name" input, recorded in a manifest.json with the inputs
+- validation that fails fast; retries on the other steps
+- a task group that fans out per region
+- skips cleanly when nothing matches
+- a failure callback (writes failures.log; swap in email/chat)
+- optionally starts another job (sales_report) with its own inputs
+- max_active_runs=1: one run at a time
 
-Reads the sample CSV so it runs anywhere; swap extract_region's body for
-the MySQL query in example 6 to run it against the database.
-
-Try it
-  CLI: airflow dags trigger sales_pipeline --conf '{
-         "requested_by": "Alex", "regions": ["East", "West"],
-         "start_date": "2026-10-01", "end_date": "2026-10-04",
-         "formats": ["csv", "json"], "run_standard_report": true}'
+Try it: airflow dags trigger sales_pipeline --conf '{"requested_by": "Alex", "regions": ["East", "West"]}'
 """
 import csv
 import json
@@ -47,9 +35,7 @@ REGIONS = ["East", "West", "North", "South"]
 
 
 def notify_failure(context):
-    """Called when any task fails for good (after its retries).
-    Offline network: we log and append to a file. Swap in email or
-    your chat tool if the server can reach one."""
+    """Runs when a task fails for good. Logs to failures.log; swap in email or chat."""
     ti = context["task_instance"]
     msg = (f"{datetime.now():%Y-%m-%d %H:%M} FAILED {ti.dag_id}.{ti.task_id} "
            f"run={context['run_id']} requested_by={context['params'].get('requested_by')}")
@@ -66,21 +52,19 @@ def notify_failure(context):
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    max_active_runs=1,                 # one run at a time
+    max_active_runs=1,
     tags=["example", "level-4"],
-    doc_md=__doc__,                    # this text shows on the job's page in the UI
+    doc_md=__doc__,
     default_args={
         "retries": 2,
         "retry_delay": timedelta(seconds=30),
         "on_failure_callback": notify_failure,
     },
     params={
-        # -- Who and why (recorded in the manifest) --
         "requested_by": Param(type="string", minLength=2, title="Your name",
                               section="Who and why"),
         "run_note": Param("", type="string", format="multiline", title="Reason / note",
                           section="Who and why"),
-        # -- What --
         "start_date": Param("2026-10-01", type="string", format="date", title="From",
                             section="What to report"),
         "end_date": Param("2026-10-31", type="string", format="date", title="To (inclusive)",
@@ -90,13 +74,11 @@ def notify_failure(context):
                          title="Regions", section="What to report"),
         "min_amount": Param(0, type="number", minimum=0, title="Minimum amount",
                             section="What to report"),
-        # -- Output --
         "formats": Param(["csv", "txt"], type="array", examples=["csv", "txt", "json"],
                          items={"type": "string", "enum": ["csv", "txt", "json"]},
                          minItems=1, title="Output formats", section="Output"),
         "output_dir": Param("/tmp/airflow_examples/pipeline", type="string",
                             title="Output folder", section="Output"),
-        # -- Options --
         "dry_run": Param(False, type="boolean", title="Dry run (write nothing)",
                          section="Options"),
         "run_standard_report": Param(False, type="boolean",
@@ -106,7 +88,7 @@ def notify_failure(context):
 )
 def sales_pipeline():
 
-    @task(retries=0)  # bad input won't fix itself
+    @task(retries=0)  # retrying won't fix bad input
     def validate(**context):
         p = context["params"]
         problems = []
@@ -127,7 +109,7 @@ def sales_pipeline():
         def extract_region(region, **context):
             get_current_context()["region_label"] = region
             p = context["params"]
-            # Swap this block for example 6's MySqlHook query to use the database.
+            # swap for example 6's MySqlHook query to read from the database
             with open(SALES_CSV, newline="") as f:
                 rows = [r for r in csv.DictReader(f)
                         if r["region"] == region
@@ -147,7 +129,6 @@ def sales_pipeline():
         p = context["params"]
         rows = [r for region_rows in per_region for r in region_rows]
         if not rows:
-            # Not an error: mark this step (and what follows) as skipped.
             raise AirflowSkipException("No sales match these inputs; nothing to report.")
 
         totals = {}
@@ -195,7 +176,6 @@ def sales_pipeline():
 
     @task
     def followup_inputs(**context):
-        # Inputs for the other job. Built in Python so numbers stay numbers.
         return {"region": "All", "min_amount": int(context["params"]["min_amount"])}
 
     run_dir = validate()
@@ -207,7 +187,7 @@ def sales_pipeline():
     start_sales_report = TriggerDagRunOperator(
         task_id="start_sales_report",
         trigger_dag_id="sales_report",
-        conf=conf,                       # the other job's form values
+        conf=conf,
         wait_for_completion=False,
     )
     report >> wants_followup() >> conf >> start_sales_report
