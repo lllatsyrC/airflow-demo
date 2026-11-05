@@ -114,7 +114,7 @@ def run_in_terminal(inputs):
 
 
 # ---------------------------------------------------------------------------
-# A small window: the kind of GUI our tools already have
+# mock GUI
 # ---------------------------------------------------------------------------
 def run_window(default_batch_dir):
     import tkinter as tk
