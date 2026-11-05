@@ -1,0 +1,10 @@
+# MySQL option file the team scripts log in with (example 8).
+# Copy it somewhere only the Airflow user can read, e.g. /opt/airflow/secrets/team_db.cnf,
+# run `chmod 600` on it, and enter that path in the job's "Database config file" field.
+# Keep real credentials out of git.
+[client]
+host=localhost
+port=3306
+user=airflow_loader
+password=change-me
+database=airflow_examples

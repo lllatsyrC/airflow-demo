@@ -1,0 +1,8 @@
+store,sku,counted_at,quantity
+ Northgate ,a-100,2026-11-04 08:10,12
+Northgate,A-101,2026-11-04 08:12,7
+Riverside,a-100,2026-11-04 08:30,30
+Riverside,a-100,2026-11-04 08:30,30
+Riverside,B-200,2026-11-04 08:34,-3
+Hillcrest,B-200,2026-11-04 09:05,5
+Hillcrest,A-101,2026-11-04 09:07,9

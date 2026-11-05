@@ -1,0 +1,7 @@
+trip_id,start_time,depot,vehicle_type,heading_deg,planned_km
+T-001,2026-11-04 09:00:05, Northgate ,van,45.0,32.0
+T-002,2026-11-04 09:04:40,Northgate,VAN,90.5,28.5
+T-003,2026-11-04 09:11:12,Riverside,truck,182.0,41.0
+T-003,2026-11-04 09:11:12,Riverside,truck,182.0,41.0
+T-004,2026-11-04 09:20:30,Riverside,truck,270.25,39.0
+T-005,2026-11-04 09:31:02,Hillcrest,van,361.0,25.0

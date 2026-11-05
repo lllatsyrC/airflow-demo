@@ -17,6 +17,9 @@ if [[ "${1:-}" == "install" ]]; then
   pip install --upgrade pip
   pip install "apache-airflow==${AIRFLOW_VERSION}" \
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PY}.txt"
+  # Examples 8 and 9 use pandas; example 8's scripts also use pymysql.
+  pip install pandas pymysql \
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PY}.txt"
   echo "Installed Airflow ${AIRFLOW_VERSION}. Now run: ./run-local.sh"
   exit 0
 fi
