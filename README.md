@@ -8,6 +8,8 @@ It shows today's process next to the same process with Airflow, explains tasks a
 the web page with annotated Airflow 3.3.2 screenshots (find a job, fill in the form, watch the run, read logs, fix a failure).
 The appendix covers the example jobs below and reference material.
 
+**Diagrams:** [docs/mermaid-examples.md](docs/mermaid-examples.md), Mermaid code for flows, shapes, an ERD of the example tables, a sequence diagram of a triggered run, and task states, from simple to more involved. GitHub renders them as pictures.
+
 ## Try it on your own machine
 
 On a Mac, Linux, or Windows with WSL2, with internet access and Python 3.10–3.12:
@@ -62,7 +64,7 @@ airflow-demo/
 │   ├── data/batches/batch_2026_11_04/    # a sample batch for examples 8 and 9 (made-up data)
 │   └── sql/create_sample_sales.sql, create_batch_tables.sql
 ├── run-local.sh
-└── docs/airflow-teach-me-slides.pdf
+└── docs/airflow-teach-me-slides.pdf, mermaid-examples.md
 ```
 
 ## Setup
