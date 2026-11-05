@@ -35,6 +35,7 @@ export AIRFLOW__CORE__DAGS_FOLDER="$PWD/dags"     # the example jobs
 export AIRFLOW__CORE__LOAD_EXAMPLES=False         # hide Airflow's built-in demo jobs
 export AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
 export JOBS_DIR="$PWD/jobs"                       # scripts and sample data
+export AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=30  # notice new job files within 30 s (default 5 min)
 
 echo "Starting Airflow ${AIRFLOW_VERSION}: open http://localhost:8080 (user: admin, password below)."
 exec airflow standalone

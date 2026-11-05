@@ -1,10 +1,10 @@
 # Airflow examples: manually triggered jobs with inputs
 
-Seven example jobs, each adding one idea to the one before. Every job runs
+Nine example jobs (plus a GUI that starts one), each adding one idea to the one before. Every job runs
 only when someone clicks **Trigger**, and the form asks for its inputs.
 
-**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf), the teach-me deck: 16 slides plus an appendix.
-It shows today's process next to the same process with Airflow, explains tasks and DAGs with diagrams, and walks through
+**Slides:** [docs/airflow-teach-me-slides.pdf](docs/airflow-teach-me-slides.pdf) (editable: [.pptx](docs/airflow-teach-me-slides.pptx)), the teach-me deck: 16 slides plus an appendix.
+It shows our current workflow next to the same steps run through Airflow, explains tasks and DAGs with diagrams, and walks through
 the web page with annotated Airflow 3.3.2 screenshots (find a job, fill in the form, watch the run, read logs, fix a failure).
 The appendix covers the example jobs below and reference material.
 
@@ -25,6 +25,13 @@ Log in as `admin` with the password printed in the terminal (also saved in `.air
 Everything stays inside the repo folder (`.venv/`, `.airflow/`), and Ctrl+C stops it. Examples 1–5 and 7 work as is.
 Examples 6 and 9 need a MySQL server; example 8 runs without one if you untick "Insert into the database".
 
+**Adding or changing a job file:** no restart needed. Airflow re-reads changed job files within about 30 seconds.
+A brand-new file is noticed on the next folder scan: every 5 minutes by default, every 30 seconds with `run-local.sh`.
+To load it right away, run `airflow dags reserialize` in a second terminal (after `source .venv/bin/activate` and
+`export AIRFLOW_HOME=$PWD/.airflow AIRFLOW__CORE__DAGS_FOLDER=$PWD/dags`), then refresh the page.
+If a job doesn't appear, it probably has an error: check **Dag import errors** at the top of the Dags page,
+or `airflow dags list-import-errors`.
+
 ## The example jobs
 
 | # | Job (dag_id) | Adds | Level |
@@ -38,6 +45,7 @@ Examples 6 and 9 need a MySQL server; example 8 runs without one if you untick "
 | 7 | `sales_pipeline` | All of the above plus retries, failure alerts, a run manifest (who ran it, with what), skip-when-empty, one run at a time, and starting another job | Advanced |
 | 8 | `batch_run_scripts` | **Running our existing scripts:** a batch folder and file paths as inputs; scripts left in their own folders; one shared bash runner found via `template_searchpath`, with each step's output feeding the next step's input; the team's own Python; an optional database-insert step; safe reruns | Our work |
 | 9 | `batch_load_trips` | **Two-table load:** two Python tasks, each building a DataFrame from a batch file and inserting it; task 2 reads task 1's rows back from the database; all input files checked before the first insert; safe reruns | Our work |
+| 10 | *(not a job)* `gui/trigger_batch_gui.py` | **Starting a job from another program:** a small desktop window (or any script) starts example 8 through Airflow's REST API and follows its steps; the run shows in the web page like any other | Our work |
 
 Each file starts with a comment saying what it teaches and how to try it.
 In the UI, the jobs are named "Example 1 · …" to "Example 9 · …" and tagged `example`.
@@ -54,6 +62,7 @@ airflow-demo/
 │   ├── 07_sales_pipeline.py
 │   ├── 08_run_scripts.py
 │   └── 09_two_table_load.py
+├── gui/trigger_batch_gui.py      # example 10: not a job; keep it out of the dags folder
 ├── jobs/                         # scripts, data and SQL: anywhere on the server
 │   ├── scripts/filter_data.py, summarize.py
 │   ├── common/run_python_step.sh         # shared runner reused by example 8's steps
@@ -64,7 +73,7 @@ airflow-demo/
 │   ├── data/batches/batch_2026_11_04/    # a sample batch for examples 8 and 9 (made-up data)
 │   └── sql/create_sample_sales.sql, create_batch_tables.sql
 ├── run-local.sh
-└── docs/airflow-teach-me-slides.pdf, mermaid-examples.md
+└── docs/airflow-teach-me-slides.pdf, .pptx, mermaid-examples.md
 ```
 
 ## Setup
@@ -126,6 +135,15 @@ airflow dags trigger batch_load_trips    --conf '{"batch_dir": "/opt/jobs/data/b
 Inputs you leave out keep their defaults. Required inputs (examples 2, 7, 8 and 9)
 must be given, or the run is refused.
 
+From another program (example 10). With `./run-local.sh` running, in a second terminal:
+```bash
+python3 gui/trigger_batch_gui.py              # a window: batch folder, insert checkbox, Run
+python3 gui/trigger_batch_gui.py --no-gui --no-insert   # same, printed in the terminal
+```
+It logs in as `admin` with the generated password; on the server, set `AIRFLOW_URL`, `AIRFLOW_USER` and
+`AIRFLOW_PASSWORD` for an Airflow account made just for the GUI. The window uses tkinter, which comes with
+most Python installs (on Linux: `apt install python3-tk`); `--no-gui` needs nothing extra.
+
 To try a job once in the terminal without the scheduler, use `airflow dags test <job> -c '<json>'`.
 
 ## Expected results on the sample data
@@ -144,6 +162,8 @@ To try a job once in the terminal without the scheduler, use `airflow dags test 
 | `batch_run_scripts` a file missing | Fails at `check_inputs` before any script runs, naming the missing file |
 | `batch_load_trips` sample batch | trips: 6 raw → 4 rows (1 duplicate, 1 bad heading dropped); trip_points: 9 raw → 8 rows (1 with no matching trip dropped) |
 | `batch_load_trips` points file missing | Fails in `load_trips` before anything is inserted |
+| `trigger_batch_gui.py --no-gui --no-insert` | Prints the run link, then each step's state until `success` (load skipped) |
+| `trigger_batch_gui.py` with a wrong folder | Run ends `failed` at `check_inputs`; the other steps show `upstream_failed` |
 | Either job, same batch again | Same row counts: the batch's rows are replaced, not duplicated |
 
 ## Patterns to copy into your own jobs
@@ -163,6 +183,7 @@ To try a job once in the terminal without the scheduler, use `airflow dags test 
 - **The team's own Python:** run scripts with their environment's interpreter, not Airflow's (example 8).
 - **Optional step:** a checkbox plus `@task.short_circuit`; returning False skips everything after it (example 8).
 - **Don't pass DataFrames between tasks:** build and load in the same task, and let the next task read from the database or a file (example 9).
+- **Start a job from a GUI or another script:** `POST /auth/token`, then `POST /api/v2/dags/<job>/dagRuns` with `{"logical_date": null, "conf": {...}}`; poll the run for its state (example 10).
 - **Safe reruns:** delete the batch's rows, then insert, in one transaction (examples 8 and 9).
 
 
